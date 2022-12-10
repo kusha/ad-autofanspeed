@@ -94,7 +94,8 @@ class AutoFanSpeed(hass.Hass):
     if self.is_time_okay(self.start, self.end):
       room_temperature = float(new)
       fan_speed_percentage = self.get_target_fan_speed(room_temperature)
-      self.call_service("fan/set_percentage", entity_id = self.fan, percentage = fan_speed_percentage)
+      if self.is_speed_update_required(fan_speed_percentage):
+        self.call_service("fan/set_percentage", entity_id = self.fan, percentage = fan_speed_percentage)
 
 
   def get_target_fan_speed(self, room_temperature):
@@ -124,7 +125,15 @@ class AutoFanSpeed(hass.Hass):
       return start <= current_time and current_time <= end
     else:
       return start <= current_time or current_time <= end
-    
+
+  def is_speed_update_required(self, target_fan_speed_percentage):
+    current_fan_speed_percentage = float(self.get_state(self.fan, attribute="percentage"))
+    if current_fan_speed_percentage != target_fan_speed_percentage:
+      self.debug_log(f"SPEED UPDATE: {current_fan_speed_percentage}% -> {target_fan_speed_percentage}%")
+      return True
+    self.debug_log(f"SPEED UPDATE IS NOT REQUIRED: {current_fan_speed_percentage}%")
+    return False
+
   def debug_log(self, message):
     if self.debug:
       self.log(message)
