@@ -16,6 +16,10 @@ from datetime import datetime, time
 #     medium: 69
 #     high: 73
 #     sun_offset: -2
+#   speed_values:
+#     low: 33
+#     medium: 67
+#     high: 100
 #   time:
 #     start: "21:00:00"
 #     end: "09:30:00"
@@ -40,6 +44,9 @@ class AutoFanSpeed(hass.Hass):
     self.start        = datetime.strptime("21:00:00", '%H:%M:%S').time()
     self.end          = datetime.strptime("09:30:00", '%H:%M:%S').time()
     self.turn_off     = False
+    self.low_speed    = 25
+    self.medium_speed = 50
+    self.high_speed   = 100
     
     # USER PREFERENCES
     if "speeds" in self.args:
@@ -47,6 +54,11 @@ class AutoFanSpeed(hass.Hass):
       self.medium = int(self.args["speeds"]["medium"]) if "medium" in self.args["speeds"] else self.medium
       self.high = int(self.args["speeds"]["high"]) if "high" in self.args["speeds"] else self.high
       self.offset = int(self.args["speeds"]["sun_offset"]) if "sun_offset" in self.args["speeds"] else self.offset
+
+    if "speed_values" in self.args:
+      self.low_speed = int(self.args["speed_values"]["low"]) if "low" in self.args["speed_values"] else self.low_speed
+      self.medium_speed = int(self.args["speed_values"]["medium"]) if "medium" in self.args["speed_values"] else self.medium_speed
+      self.high_speed = int(self.args["speed_values"]["high"]) if "high" in self.args["speed_values"] else self.high_speed
     
     if "time" in self.args:
       self.start = datetime.strptime(self.args["time"]["start"], '%H:%M:%S').time() if "start" in self.args["time"] else self.start
@@ -92,9 +104,9 @@ class AutoFanSpeed(hass.Hass):
     offset = self.offset if sun_above_horizon else 0
     fan_speed_percentage = 0
     
-    if room_temperature >= self.low + offset: fan_speed_percentage = 25
-    if room_temperature >= self.medium + offset: fan_speed_percentage = 50
-    if room_temperature >= self.high + offset: fan_speed_percentage = 100
+    if room_temperature >= self.low + offset: fan_speed_percentage = self.low_speed
+    if room_temperature >= self.medium + offset: fan_speed_percentage = self.medium_speed
+    if room_temperature >= self.high + offset: fan_speed_percentage = self.high_speed
     
     self.debug_log(f"AUTO FAN SPEED: {str(room_temperature)}/{fan_speed_percentage}%" + (" (SUN OFFSET)" if sun_above_horizon else ""))
       
