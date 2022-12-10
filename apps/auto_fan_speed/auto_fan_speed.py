@@ -40,6 +40,9 @@ class AutoFanSpeed(hass.Hass):
     self.low          = 67
     self.medium       = 70
     self.high         = 72
+    self.low_sensor   = None
+    self.medium_sensor= None
+    self.high_sensor  = None
     self.offset       = 0
     self.start        = datetime.strptime("21:00:00", '%H:%M:%S').time()
     self.end          = datetime.strptime("09:30:00", '%H:%M:%S').time()
@@ -50,7 +53,13 @@ class AutoFanSpeed(hass.Hass):
     
     # USER PREFERENCES
     if "speeds" in self.args:
-      self.low = int(self.args["speeds"]["low"]) if "low" in self.args["speeds"] else self.low
+      if "low" in self.args["speeds"]:
+        if self.is_numeric(self.args["speeds"]["low"]):
+          self.low = int(self.args["speeds"]["low"])
+        else:
+          self.low_sensor = self.args["speeds"]["low"]
+          self.listen_state(self.range_sensor_change, self.low_sensor)
+
       self.medium = int(self.args["speeds"]["medium"]) if "medium" in self.args["speeds"] else self.medium
       self.high = int(self.args["speeds"]["high"]) if "high" in self.args["speeds"] else self.high
       self.offset = int(self.args["speeds"]["sun_offset"]) if "sun_offset" in self.args["speeds"] else self.offset
@@ -97,6 +106,8 @@ class AutoFanSpeed(hass.Hass):
       if self.is_speed_update_required(fan_speed_percentage):
         self.call_service("fan/set_percentage", entity_id = self.fan, percentage = fan_speed_percentage)
 
+  def range_sensor_change(self, entity, attribute, old, new, kwargs):
+    self.debug_log(f"UPDATE OF SENSOR CHANGE: {entity} {new}")
 
   def get_target_fan_speed(self, room_temperature):
     
@@ -137,3 +148,11 @@ class AutoFanSpeed(hass.Hass):
   def debug_log(self, message):
     if self.debug:
       self.log(message)
+
+  @staticmethod
+  def is_numeric(value):
+    try:
+        float(value)
+    except ValueError:
+        return False
+    return True
